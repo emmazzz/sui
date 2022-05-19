@@ -4,10 +4,10 @@
 use std::collections::BTreeMap;
 use std::{collections::HashMap, sync::Arc};
 
-use sui_types::base_types::AuthorityName;
-use sui_types::base_types::{ObjectID, ObjectRef, SuiAddress};
+use sui_types::base_types::ObjectID;
+use sui_types::base_types::{AuthorityName, ObjectInfo};
 use sui_types::error::SuiResult;
-use sui_types::object::ObjectRead;
+use sui_types::object::{ObjectRead, Owner};
 use tokio::sync::Mutex as TokioMutex;
 use tokio::sync::Mutex;
 use tracing::debug;
@@ -85,11 +85,8 @@ where
         Ok(result)
     }
 
-    pub async fn get_owned_objects(
-        &self,
-        account_addr: SuiAddress,
-    ) -> Result<Vec<ObjectRef>, anyhow::Error> {
-        Ok(self.state.store.get_account_objects(account_addr)?)
+    pub fn get_owner_objects(&self, owner: Owner) -> Result<Vec<ObjectInfo>, anyhow::Error> {
+        Ok(self.state.store.get_owner_objects(owner)?)
     }
 }
 
