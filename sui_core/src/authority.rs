@@ -5,6 +5,7 @@
 use crate::{
     authority_batch::{BroadcastReceiver, BroadcastSender},
     checkpoints::CheckpointStore,
+    epoch::EpochInfo,
     execution_engine, transaction_input_checker,
 };
 use async_trait::async_trait;
@@ -28,7 +29,7 @@ use std::{
     collections::{BTreeMap, HashMap, HashSet, VecDeque},
     pin::Pin,
     sync::{
-        atomic::{AtomicUsize, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc,
     },
 };
@@ -43,6 +44,7 @@ use sui_types::{
     fp_bail, fp_ensure,
     gas::SuiGasStatus,
     messages::*,
+    messages_checkpoint::{AtomicCheckpointSequenceNumber, CheckpointSequenceNumber},
     object::{Data, Object},
     storage::{BackingPackageStore, DeleteKind, Storage},
     MOVE_STDLIB_ADDRESS, SUI_FRAMEWORK_ADDRESS,
@@ -181,10 +183,25 @@ pub struct AuthorityState {
     // Fixed size, static, identity of the authority
     /// The name of this authority.
     pub name: AuthorityName,
-    /// Committee of this Sui instance.
-    pub committee: Committee,
     /// The signature key of the authority.
     pub secret: StableSyncAuthoritySigner,
+
+    /// Committee of this Sui instance.
+    pub committee: Committee,
+    /// Sequence number of the first checkpoint of the current epoch.
+    /// This will only be set when an authority restarts with new epoch information.
+    /// Hence there will never be data races.
+    #[allow(dead_code)]
+    first_checkpoint: CheckpointSequenceNumber,
+    /// Sequence number of the last checkpoint of the current epoch.
+    /// This needs to be atomic because it could be set the moment we can determine
+    /// the last checkpoint, at which point we could also be checking it to see if
+    /// we have reached the last checkpoint in parallel.
+    #[allow(dead_code)]
+    last_checkpoint: AtomicCheckpointSequenceNumber,
+    /// A global lock to halt all transaction/cert processing.
+    #[allow(dead_code)]
+    halted: AtomicBool,
 
     /// Move native functions that are available to invoke
     _native_functions: NativeFunctionTable,
@@ -736,12 +753,29 @@ impl AuthorityState {
             generate_genesis_system_object(&store, &move_vm, &committee, &mut genesis_ctx)
                 .await
                 .expect("Cannot generate genesis system object");
+
+            store
+                .insert_new_enpoch_info(EpochInfo {
+                    committee,
+                    first_checkpoint: 0,
+                    last_checkpoint: 0,
+                    validator_halted: false,
+                })
+                .expect("Cannot initialize the first epoch entry");
         }
+        let current_epoch_info = store
+            .get_last_epoch_info()
+            .expect("Fail to load the current epoch info");
 
         let mut state = AuthorityState {
-            committee: committee.clone(),
             name,
             secret,
+            committee: current_epoch_info.committee,
+            first_checkpoint: current_epoch_info.first_checkpoint,
+            last_checkpoint: AtomicCheckpointSequenceNumber::new(
+                current_epoch_info.last_checkpoint,
+            ),
+            halted: AtomicBool::new(current_epoch_info.validator_halted),
             _native_functions: native_functions,
             move_vm,
             database: store.clone(),
