@@ -518,7 +518,7 @@
         }
       ],
       "result": {
-        "name": "Vec < (GatewayTxSeqNumber, TransactionDigest) >",
+        "name": "Vec<(GatewayTxSeqNumber,TransactionDigest)>",
         "required": true,
         "schema": {
           "type": "array",
@@ -553,7 +553,7 @@
         }
       ],
       "result": {
-        "name": "Vec < (GatewayTxSeqNumber, TransactionDigest) >",
+        "name": "Vec<(GatewayTxSeqNumber,TransactionDigest)>",
         "required": true,
         "schema": {
           "type": "array",
@@ -588,7 +588,7 @@
         }
       ],
       "result": {
-        "name": "Vec < (GatewayTxSeqNumber, TransactionDigest) >",
+        "name": "Vec<(GatewayTxSeqNumber,TransactionDigest)>",
         "required": true,
         "schema": {
           "type": "array",
@@ -623,7 +623,7 @@
         }
       ],
       "result": {
-        "name": "Vec < (GatewayTxSeqNumber, TransactionDigest) >",
+        "name": "Vec<(GatewayTxSeqNumber,TransactionDigest)>",
         "required": true,
         "schema": {
           "type": "array",
