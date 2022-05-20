@@ -51,6 +51,7 @@ where
     I: IntoIterator<Item = Object> + Clone,
 {
     let mut handles = Vec::new();
+    let genesis = sui_config::genesis::Genesis::get_default_genesis();
     for validator in config.validator_configs() {
         let state = AuthorityState::new(
             validator.committee_config().committee(),
@@ -58,7 +59,7 @@ where
             Arc::pin(validator.key_pair().copy()),
             Arc::new(test_authority_store()),
             None,
-            &sui_config::genesis::Genesis::get_default_genesis(),
+            &genesis,
         )
         .await;
 

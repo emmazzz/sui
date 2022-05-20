@@ -1320,6 +1320,7 @@ async fn checkpoint_tests_setup() -> TestSetup {
     let mut authorities = Vec::new();
 
     // Make all authorities and their services.
+    let genesis = sui_config::genesis::Genesis::get_default_genesis();
     for k in &keys {
         let dir = env::temp_dir();
         let path = dir.join(format!("SC_{:?}", ObjectID::random()));
@@ -1354,14 +1355,13 @@ async fn checkpoint_tests_setup() -> TestSetup {
             .set_consensus(Box::new(sender.clone()))
             .expect("No issues");
         let checkpoint = Arc::new(Mutex::new(checkpoint));
-
         let authority = AuthorityState::new(
             committee.clone(),
             *secret.public_key_bytes(),
             secret,
             store.clone(),
             Some(checkpoint.clone()),
-            &sui_config::genesis::Genesis::get_default_genesis(),
+            &genesis,
         )
         .await;
 
