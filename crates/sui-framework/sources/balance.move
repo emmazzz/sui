@@ -77,6 +77,12 @@ module sui::balance {
         Balance { value }
     }
 
+    spec split {
+        ensures result.value == value;
+        ensures self.value == old(self.value) - value;
+        aborts_if self.value < value with ENotEnough;
+    }
+
     /// Destroy a zero `Balance`.
     public fun destroy_zero<T>(balance: Balance<T>) {
         assert!(balance.value == 0, ENonZero);
