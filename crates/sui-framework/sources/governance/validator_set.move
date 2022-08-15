@@ -18,6 +18,8 @@ module sui::validator_set {
     #[test_only]
     friend sui::validator_set_tests;
 
+    const BASIS_POINT_DENOMINATOR: u128 = 10000;
+
     struct ValidatorSet has store {
         /// Total amount of stake from all active validators (not including delegation),
         /// at the beginning of the epoch.
@@ -131,6 +133,16 @@ module sui::validator_set {
         self.next_epoch_validators = derive_next_epoch_validators(self);
     }
 
+    public(friend) fun request_set_commission_rate(
+        self: &mut ValidatorSet,
+        new_commission_rate: u64,
+        ctx: &mut TxContext,
+    ) {
+        let validator_address = tx_context::sender(ctx);
+        let validator = get_validator_mut(&mut self.active_validators, validator_address);
+        validator::request_set_commission_rate(validator, new_commission_rate);
+    }
+
     public(friend) fun is_active_validator(
         self: &ValidatorSet,
         validator_address: address,
@@ -185,6 +197,7 @@ module sui::validator_set {
                 total_stake,
                 validator::delegator_count(v),
                 validator::sui_address(v),
+                validator::commission_rate(v),
                 ctx,
             );
             i = i + 1;
@@ -200,21 +213,24 @@ module sui::validator_set {
     public(friend) fun advance_epoch(
         self: &mut ValidatorSet,
         computation_reward: &mut Balance<SUI>,
+        delegation_reward: &mut Balance<SUI>,
         ctx: &mut TxContext,
     ) {
         // `compute_reward_distribution` must be called before `adjust_stake` to make sure we are using the current
         // epoch's stake information to compute reward distribution.
-        let rewards = compute_reward_distribution(
+        let (self_rewards, delegation_commissions) = compute_reward_distribution(
             &self.active_validators,
             self.total_validator_stake,
             balance::value(computation_reward),
+            self.total_delegation_stake,
+            balance::value(delegation_reward),
         );
 
         // `adjust_stake` must be called before `distribute_reward`, because reward distribution goes to
         // each validator's pending stake, and that shouldn't be available in the next epoch.
         adjust_stake(&mut self.active_validators);
 
-        distribute_reward(&mut self.active_validators, &rewards, computation_reward, ctx);
+        distribute_reward(&mut self.active_validators, &self_rewards, computation_reward, &delegation_commissions, delegation_reward, ctx);
 
         process_pending_validators(&mut self.active_validators, &mut self.pending_validators);
 
@@ -388,8 +404,11 @@ module sui::validator_set {
         validators: &vector<Validator>,
         total_stake: u64,
         total_reward: u64,
-    ): vector<u64> {
-        let results = vector::empty();
+        total_delegation_stake: u64,
+        total_delegation_reward: u64,
+    ): (vector<u64>, vector<u64>) {
+        let rewards = vector::empty();
+        let commissions = vector::empty();
         let length = vector::length(validators);
         let i = 0;
         while (i < length) {
@@ -399,10 +418,18 @@ module sui::validator_set {
             // Use u128 to avoid multiplication overflow.
             let stake_amount: u128 = (validator::stake_amount(validator) as u128);
             let reward_amount = stake_amount * (total_reward as u128) / (total_stake as u128);
-            vector::push_back(&mut results, (reward_amount as u64));
+            vector::push_back(&mut rewards, (reward_amount as u64));
+
+            let delegation_stake_amount: u128 = (validator::delegate_amount(validator) as u128);
+            let delegation_reward_amount = 
+                if (total_delegation_stake == 0) 0
+                else delegation_stake_amount * (total_delegation_reward as u128) / (total_delegation_stake as u128);
+            let commission_rate = validator::commission_rate(validator);
+            let commission_amount = delegation_reward_amount * (commission_rate as u128) / BASIS_POINT_DENOMINATOR;
+            vector::push_back(&mut commissions, (commission_amount as u64));
             i = i + 1;
         };
-        results
+        (rewards, commissions)
     }
 
     // TODO: Allow reward compunding for delegators.
@@ -410,6 +437,8 @@ module sui::validator_set {
         validators: &mut vector<Validator>,
         rewards: &vector<u64>,
         reward: &mut Balance<SUI>,
+        commissions: &vector<u64>,
+        delegation_reward: &mut Balance<SUI>,
         ctx: &mut TxContext
     ) {
         let length = vector::length(validators);
@@ -418,6 +447,9 @@ module sui::validator_set {
             let validator = vector::borrow_mut(validators, i);
             let reward_amount = *vector::borrow(rewards, i);
             let reward = balance::split(reward, reward_amount);
+            let commission_amount = *vector::borrow(commissions, i);
+            let commission = balance::split(delegation_reward, commission_amount);
+            balance::join(&mut reward, commission);
             // Because reward goes to pending stake, it's the same as calling `request_add_stake`.
             validator::request_add_stake(validator, reward, option::none(), ctx);
             i = i + 1;

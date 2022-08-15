@@ -26,6 +26,7 @@ module sui::validator_tests {
                 b"Validator1",
                 x"FFFF",
                 init_stake,
+                0,
                 option::none(),
                 ctx
             );
@@ -56,6 +57,7 @@ module sui::validator_tests {
             b"Validator1",
             x"FFFF",
             init_stake,
+            0,
             option::none(),
             ctx
         );

@@ -39,6 +39,7 @@ pub struct ValidatorMetadata {
     pub net_address: Vec<u8>,
     pub next_epoch_stake: u64,
     pub next_epoch_delegation: u64,
+    pub next_epoch_commission_rate: u64,
 }
 
 /// Rust version of the Move sui::validator::Validator type
@@ -47,6 +48,7 @@ pub struct Validator {
     pub metadata: ValidatorMetadata,
     pub stake_amount: u64,
     pub delegation: u64,
+    pub commission_rate: u64,
     pub pending_stake: u64,
     pub pending_withdraw: u64,
     pub pending_delegation: u64,

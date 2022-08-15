@@ -33,6 +33,7 @@ module sui::genesis {
         validator_names: vector<vector<u8>>,
         validator_net_addresses: vector<vector<u8>>,
         validator_stakes: vector<u64>,
+        validator_commission_rates: vector<u64>,
         ctx: &mut TxContext,
     ) {
         let sui_supply = sui::new();
@@ -53,12 +54,14 @@ module sui::genesis {
             let name = *vector::borrow(&validator_names, i);
             let net_address = *vector::borrow(&validator_net_addresses, i);
             let stake = *vector::borrow(&validator_stakes, i);
+            let commission_rate = *vector::borrow(&validator_commission_rates, i);
             vector::push_back(&mut validators, validator::new(
                 sui_address,
                 pubkey,
                 name,
                 net_address,
                 balance::increase_supply(&mut sui_supply, stake),
+                commission_rate,
                 option::none(),
                 ctx
             ));

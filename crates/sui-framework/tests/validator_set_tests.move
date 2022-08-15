@@ -80,8 +80,9 @@ module sui::validator_set_tests {
         test_scenario::next_tx(&mut scenario, &@0x1);
         {
             let reward = balance::zero<SUI>();
+            let delegation_reward = balance::zero<SUI>();
             let ctx1 = test_scenario::ctx(&mut scenario);
-            validator_set::advance_epoch(&mut validator_set, &mut reward, ctx1);
+            validator_set::advance_epoch(&mut validator_set, &mut reward, &mut delegation_reward, ctx1);
             // The total stake and quorum should reflect 4 validators.
             assert!(validator_set::next_epoch_validator_count(&validator_set) == 4, 0);
             assert!(validator_set::total_validator_stake(&validator_set) == 1000, 0);
@@ -93,10 +94,11 @@ module sui::validator_set_tests {
             // Total validator candidate count changes, but total stake remains during epoch.
             assert!(validator_set::next_epoch_validator_count(&validator_set) == 3, 0);
             assert!(validator_set::total_validator_stake(&validator_set) == 1000, 0);
-            validator_set::advance_epoch(&mut validator_set, &mut reward, ctx1);
+            validator_set::advance_epoch(&mut validator_set, &mut reward, &mut delegation_reward, ctx1);
             // Validator1 is gone.
             assert!(validator_set::total_validator_stake(&validator_set) == 900, 0);
             balance::destroy_zero(reward);
+            balance::destroy_zero(delegation_reward);
         };
 
         validator_set::destroy_for_testing(validator_set);
@@ -112,6 +114,7 @@ module sui::validator_set_tests {
             vector[hint],
             vector[hint],
             init_stake,
+            0,
             option::none(),
             ctx
         )

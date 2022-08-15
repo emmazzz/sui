@@ -9,6 +9,8 @@ module sui::epoch_reward_record {
     friend sui::sui_system;
     friend sui::validator_set;
 
+    const BASIS_POINT_DENOMINATOR: u128 = 10000;
+
     /// EpochRewardRecord is an immutable record created per epoch per active validator.
     /// Sufficient information is saved in the record so that delegators can claim
     /// delegation rewards from past epochs, and for validators that may no longer be active.
@@ -22,6 +24,7 @@ module sui::epoch_reward_record {
         total_stake: u64,
         delegator_count: u64,
         validator: address,
+        validator_commission_rate: u64, // in basis point
     }
 
     public(friend) fun create(
@@ -30,6 +33,7 @@ module sui::epoch_reward_record {
         total_stake: u64,
         delegator_count: u64,
         validator: address,
+        validator_commission_rate: u64,
         ctx: &mut TxContext,
     ) {
         transfer::share_object(EpochRewardRecord {
@@ -39,6 +43,7 @@ module sui::epoch_reward_record {
             total_stake,
             delegator_count,
             validator,
+            validator_commission_rate,
         })
     }
 
@@ -46,7 +51,10 @@ module sui::epoch_reward_record {
     public(friend) fun claim_reward(self: &mut EpochRewardRecord, delegation_amount: u64): u64 {
         self.delegator_count = self.delegator_count - 1;
         // TODO: Once self.delegator_count reaches 0, we should be able to delete this object.
-        delegation_amount * self.computation_charge / self.total_stake
+        let delegation_reward_amount = (delegation_amount as u128) * (self.computation_charge as u128) / (self.total_stake as u128);
+        let commission = (delegation_reward_amount as u128) * (self.validator_commission_rate as u128) / BASIS_POINT_DENOMINATOR;
+        let result = delegation_reward_amount - commission;
+        (result as u64)
     }
 
     public fun epoch(self: &EpochRewardRecord): u64 {

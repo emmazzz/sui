@@ -20,6 +20,7 @@ module sui::governance_test_utils {
             b"ValidatorName",
             x"FFFF",
             balance::create_for_testing<SUI>(init_stake_amount),
+            0,
             option::none(),
             ctx
         )

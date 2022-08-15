@@ -39,6 +39,8 @@ module sui::validator {
         next_epoch_stake: u64,
         /// Total amount of delegated stake that would be active in the next epoch.
         next_epoch_delegation: u64,
+        /// The commission rate of the validator starting the next epoch, in basis point.
+        next_epoch_commission_rate: u64,
     }
 
     struct Validator has store {
@@ -49,6 +51,8 @@ module sui::validator {
         stake_amount: u64,
         /// Amount of delegated stake from token holders.
         delegation: u64,
+        /// The commission rate of the validator, in basis point.
+        commission_rate: u64,
         /// Pending stake deposit amount, processed at end of epoch.
         pending_stake: u64,
         /// Pending withdraw amount, processed at end of epoch.
@@ -73,6 +77,7 @@ module sui::validator {
         name: vector<u8>,
         net_address: vector<u8>,
         stake: Balance<SUI>,
+        commission_rate: u64,
         coin_locked_until_epoch: Option<EpochTimeLock>,
         ctx: &mut TxContext
     ): Validator {
@@ -93,9 +98,11 @@ module sui::validator {
                 net_address,
                 next_epoch_stake: stake_amount,
                 next_epoch_delegation: 0,
+                next_epoch_commission_rate: commission_rate,
             },
             stake_amount,
             delegation: 0,
+            commission_rate,
             pending_stake: 0,
             pending_withdraw: 0,
             pending_delegation: 0,
@@ -111,6 +118,7 @@ module sui::validator {
             metadata: _,
             stake_amount: _,
             delegation: _,
+            commission_rate: _,
             pending_stake: _,
             pending_withdraw: _,
             pending_delegation: _,
@@ -167,6 +175,8 @@ module sui::validator {
         self.pending_delegator_count = 0;
         self.pending_delegator_withdraw_count = 0;
         assert!(self.delegation == self.metadata.next_epoch_delegation, 0);
+
+        self.commission_rate = self.metadata.next_epoch_commission_rate;
     }
 
     public(friend) fun request_add_delegation(self: &mut Validator, delegate_amount: u64) {
@@ -180,6 +190,10 @@ module sui::validator {
         self.pending_delegation_withdraw = self.pending_delegation_withdraw + delegate_amount;
         self.pending_delegator_withdraw_count = self.pending_delegator_withdraw_count + 1;
         self.metadata.next_epoch_delegation = self.metadata.next_epoch_delegation - delegate_amount;
+    }
+
+    public(friend) fun request_set_commission_rate(self: &mut Validator, new_commission_rate: u64) {
+        self.metadata.next_epoch_commission_rate = new_commission_rate;
     }
 
     public fun metadata(self: &Validator): &ValidatorMetadata {
@@ -196,6 +210,10 @@ module sui::validator {
 
     public fun delegate_amount(self: &Validator): u64 {
         self.delegation
+    }
+
+    public fun commission_rate(self: &Validator): u64 {
+        self.commission_rate
     }
 
     public fun delegator_count(self: &Validator): u64 {

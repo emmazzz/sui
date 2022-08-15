@@ -97,6 +97,7 @@ module sui::sui_system {
         name: vector<u8>,
         net_address: vector<u8>,
         stake: Coin<SUI>,
+        commission_rate: u64,
         ctx: &mut TxContext,
     ) {
         assert!(
@@ -114,6 +115,7 @@ module sui::sui_system {
             name,
             net_address,
             coin::into_balance(stake),
+            commission_rate,
             option::none(),
             ctx
         );
@@ -181,6 +183,18 @@ module sui::sui_system {
             stake,
             withdraw_amount,
             self.parameters.min_validator_stake,
+            ctx,
+        )
+    }
+
+    public entry fun request_set_commission_rate(
+        self: &mut SuiSystemState,
+        new_commission_rate: u64,
+        ctx: &mut TxContext,
+    ) {
+        validator_set::request_set_commission_rate(
+            &mut self.validators,
+            new_commission_rate,
             ctx,
         )
     }
@@ -286,8 +300,6 @@ module sui::sui_system {
 
         let delegator_reward_amount = delegation_stake * computation_charge / total_stake;
         let delegator_reward = balance::split(&mut computation_reward, delegator_reward_amount);
-        balance::join(&mut self.storage_fund, storage_reward);
-        balance::join(&mut self.delegation_reward, delegator_reward);
 
         validator_set::create_epoch_records(
             &self.validators,
@@ -303,8 +315,12 @@ module sui::sui_system {
         validator_set::advance_epoch(
             &mut self.validators,
             &mut computation_reward,
+            &mut delegator_reward,
             ctx,
         );
+
+        balance::join(&mut self.storage_fund, storage_reward);
+        balance::join(&mut self.delegation_reward, delegator_reward);
         // Because of precision issues with integer divisions, we expect that there will be some
         // remaining balance in `computation_reward`. All of these go to the storage fund.
         balance::join(&mut self.storage_fund, computation_reward);
