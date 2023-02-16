@@ -139,6 +139,15 @@ pub struct Table {
     pub size: u64,
 }
 
+impl Default for Table {
+    fn default() -> Self {
+        Table {
+            id: ObjectID::from(SuiAddress::ZERO),
+            size: 0,
+        }
+    }
+}
+
 /// Rust version of the Move sui::linked_table::LinkedTable type. Putting it here since
 /// we only use it in sui_system in the framework.
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq, JsonSchema)]
@@ -167,8 +176,9 @@ pub struct StakingPool {
     pub starting_epoch: u64,
     pub sui_balance: u64,
     pub rewards_pool: Balance,
-    pub delegation_token_supply: Supply,
-    pub pending_delegations: LinkedTable<ObjectID>,
+    pub pool_token_balance: u64,
+    pub exchange_rates: Table,
+    pub pending_delegation: u64,
     pub pending_withdraws: TableVec,
 }
 

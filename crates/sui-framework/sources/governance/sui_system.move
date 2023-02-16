@@ -5,7 +5,7 @@ module sui::sui_system {
     use sui::balance::{Self, Balance, Supply};
     use sui::clock::{Self, Clock};
     use sui::coin::{Self, Coin};
-    use sui::staking_pool::{Delegation, StakedSui};
+    use sui::staking_pool::StakedSui;
     use sui::object::{Self, UID};
     use sui::locked_coin::{Self, LockedCoin};
     use sui::sui::SUI;
@@ -353,15 +353,11 @@ module sui::sui_system {
     /// Withdraw some portion of a delegation from a validator's staking pool.
     public entry fun request_withdraw_delegation(
         self: &mut SuiSystemState,
-        delegation: Delegation,
         staked_sui: StakedSui,
         ctx: &mut TxContext,
     ) {
         validator_set::request_withdraw_delegation(
-            &mut self.validators,
-            delegation,
-            staked_sui,
-            ctx,
+            &mut self.validators, staked_sui, ctx,
         );
     }
 
