@@ -525,7 +525,7 @@ This request is added to the validator's staking pool's pending delegation withd
 of the epoch.
 
 
-<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator_set.md#0x2_validator_set_request_withdraw_delegation">request_withdraw_delegation</a>(self: &<b>mut</b> <a href="validator_set.md#0x2_validator_set_ValidatorSet">validator_set::ValidatorSet</a>, staked_sui: <a href="staking_pool.md#0x2_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<b>mut</b> <a href="tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
+<pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator_set.md#0x2_validator_set_request_withdraw_delegation">request_withdraw_delegation</a>(self: &<b>mut</b> <a href="validator_set.md#0x2_validator_set_ValidatorSet">validator_set::ValidatorSet</a>, staked_sui: &<b>mut</b> <a href="staking_pool.md#0x2_staking_pool_StakedSui">staking_pool::StakedSui</a>, ctx: &<b>mut</b> <a href="tx_context.md#0x2_tx_context_TxContext">tx_context::TxContext</a>)
 </code></pre>
 
 
@@ -536,10 +536,10 @@ of the epoch.
 
 <pre><code><b>public</b>(<b>friend</b>) <b>fun</b> <a href="validator_set.md#0x2_validator_set_request_withdraw_delegation">request_withdraw_delegation</a>(
     self: &<b>mut</b> <a href="validator_set.md#0x2_validator_set_ValidatorSet">ValidatorSet</a>,
-    staked_sui: StakedSui,
+    staked_sui: &<b>mut</b> StakedSui,
     ctx: &<b>mut</b> TxContext,
 ) {
-    <b>let</b> validator_address = <a href="staking_pool.md#0x2_staking_pool_validator_address">staking_pool::validator_address</a>(&staked_sui);
+    <b>let</b> validator_address = <a href="staking_pool.md#0x2_staking_pool_validator_address">staking_pool::validator_address</a>(staked_sui);
     <b>let</b> validator_index_opt = <a href="validator_set.md#0x2_validator_set_find_validator">find_validator</a>(&self.active_validators, validator_address);
 
     <b>assert</b>!(<a href="_is_some">option::is_some</a>(&validator_index_opt), 0);
