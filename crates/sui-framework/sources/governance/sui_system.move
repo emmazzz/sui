@@ -353,7 +353,7 @@ module sui::sui_system {
     /// Withdraw some portion of a delegation from a validator's staking pool.
     public entry fun request_withdraw_delegation(
         self: &mut SuiSystemState,
-        staked_sui: StakedSui,
+        staked_sui: &mut StakedSui,
         ctx: &mut TxContext,
     ) {
         validator_set::request_withdraw_delegation(

@@ -196,10 +196,10 @@ module sui::validator_set {
     /// of the epoch.
     public(friend) fun request_withdraw_delegation(
         self: &mut ValidatorSet,
-        staked_sui: StakedSui,
+        staked_sui: &mut StakedSui,
         ctx: &mut TxContext,
     ) {
-        let validator_address = staking_pool::validator_address(&staked_sui);
+        let validator_address = staking_pool::validator_address(staked_sui);
         let validator_index_opt = find_validator(&self.active_validators, validator_address);
 
         assert!(option::is_some(&validator_index_opt), 0);
